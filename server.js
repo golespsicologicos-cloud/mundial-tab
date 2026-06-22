@@ -135,6 +135,10 @@ app.get('/api/debug2', async (req, res) => {
   const data = await r.json();
   res.json(data);
 });
+app.get('/api/debug3', async (req, res) => {
+  const data = await fetchFromAPI(`competitions/${WC_ID}/standings`);
+  res.json(data);
+});
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
