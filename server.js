@@ -73,7 +73,8 @@ async function refreshData() {
     return null;
   }
 }
-
+console.log('PAGE_ID:', PAGE_ID);
+console.log('TOKEN:', PAGE_TOKEN ? 'existe' : 'NO EXISTE');
 async function captureAndPost() {
   try {
     const puppeteer = require('puppeteer');
