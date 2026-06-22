@@ -14,10 +14,9 @@ function cacheExpired() {
   return (Date.now() - cache.lastFetch) / 1000 / 60 > CACHE_MINUTES;
 }
 
-const API_KEY = process.env.API_KEY;
+const FD_KEY = process.env.FD_KEY;
 const PAGE_TOKEN = process.env.PAGE_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;
-const FD_KEY = process.env.FD_KEY;
 const WC_ID = 2000;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
@@ -30,38 +29,44 @@ async function fetchFromAPI(endpoint) {
 
 async function refreshData() {
   try {
-   const standingsData = await fetchFromAPI(`competitions/${WC_ID}/standings`);
-const rawGroups = standingsData?.standings || [];
+    const standingsData = await fetchFromAPI(`competitions/${WC_ID}/standings`);
+    const rawGroups = standingsData?.standings || [];
     const standings = [];
-    for (const group of rawGroups) {
-      for (const team of group) {
+    for (const groupObj of rawGroups) {
+      const groupLetter = groupObj.group?.replace('Group ', '') || '?';
+      for (const entry of groupObj.table) {
         standings.push({
-          group: team.group?.replace('Group ', '') || '?',
-          rank: team.rank,
-          name: team.team.name,
-          abbr: team.team.name.substring(0, 3).toUpperCase(),
-          pts: team.points,
-          w: team.all.win, d: team.all.draw, l: team.all.lose,
-          gf: team.all.goals.for, gc: team.all.goals.against
+          group: groupLetter,
+          rank: entry.position,
+          name: entry.team.name,
+          abbr: entry.team.tla,
+          pts: entry.points,
+          w: entry.won,
+          d: entry.draw,
+          l: entry.lost,
+          gf: entry.goalsFor,
+          gc: entry.goalsAgainst
         });
       }
     }
-   const scoresData = await fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED&limit=15`);
-const scores = (scoresData?.matches || []).map(f => ({
-  id: f.id,
-  home: f.homeTeam.name,
-  away: f.awayTeam.name,
-  homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
-  awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
-  sH: f.score.fullTime.home ?? 0,
-  sA: f.score.fullTime.away ?? 0,
-  status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
-  date: new Date(f.utcDate).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })
-}));
+
+    const scoresData = await fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED`);
+    const scores = (scoresData?.matches || []).slice(-15).map(f => ({
+      id: f.id,
+      home: f.homeTeam.name,
+      away: f.awayTeam.name,
+      homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
+      awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
+      sH: f.score.fullTime.home ?? 0,
+      sA: f.score.fullTime.away ?? 0,
+      status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
+      date: new Date(f.utcDate).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })
+    }));
+
     cache.standings = standings;
     cache.scores = scores;
     cache.lastFetch = Date.now();
-    console.log('Datos actualizados:', standings.length, 'equipos');
+    console.log('Datos actualizados:', standings.length, 'equipos,', scores.length, 'partidos');
     return scores;
   } catch (err) {
     console.error('Error API:', err.message);
@@ -82,11 +87,13 @@ async function captureAndPost() {
     await page.waitForTimeout(2000);
     const screenshot = await page.screenshot({ type: 'png', fullPage: false });
     await browser.close();
+
     const FormData = require('form-data');
     const form = new FormData();
     form.append('source', screenshot, { filename: 'bracket.png', contentType: 'image/png' });
     form.append('caption', '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\n#Mundial2026 #FIFA #Bracket');
     form.append('access_token', PAGE_TOKEN);
+
     const fbRes = await fetch(`https://graph.facebook.com/v20.0/${PAGE_ID}/photos`, {
       method: 'POST', body: form, headers: form.getHeaders()
     });
@@ -106,6 +113,7 @@ async function checkForFinishedMatch() {
   if (!scores) return;
   const recentFinal = scores.find(s => s.status === 'final' && s.id !== lastPostedMatchId);
   if (recentFinal) {
+    console.log(`Partido terminado: ${recentFinal.home} ${recentFinal.sH}-${recentFinal.sA} ${recentFinal.away}`);
     lastPostedMatchId = recentFinal.id;
     await captureAndPost();
   }
@@ -124,25 +132,7 @@ app.get('/api/scores', async (req, res) => {
   if (!cache.scores) return res.status(503).json({ success: false });
   res.json({ success: true, data: cache.scores, updated: new Date(cache.lastFetch).toISOString() });
 });
-app.get('/api/debug', async (req, res) => {
-  const data = await fetchFromAPI('leagues?name=World+Cup&season=2026');
-  res.json(data);
-});
-app.get('/api/debug2', async (req, res) => {
-  const r = await fetch('https://api.football-data.org/v4/competitions', {
-    headers: { 'X-Auth-Token': process.env.FD_KEY }
-  });
-  const data = await r.json();
-  res.json(data);
-});
-app.get('/api/debug3', async (req, res) => {
-  const data = await fetchFromAPI(`competitions/${WC_ID}/standings`);
-  res.json(data);
-});
-app.get('/api/debug3', async (req, res) => {
-  const data = await fetchFromAPI(`competitions/${WC_ID}/standings`);
-  res.json(data);
-});
+
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
