@@ -1,0 +1,16 @@
+{
+  "name": "mundial-2026-tab",
+  "version": "1.0.0",
+  "description": "Bracket del Mundial 2026 como Facebook Page Tab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
