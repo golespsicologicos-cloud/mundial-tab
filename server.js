@@ -129,6 +129,13 @@ app.get('/api/debug', async (req, res) => {
   const data = await fetchFromAPI('leagues?name=World+Cup&season=2026');
   res.json(data);
 });
+app.get('/api/debug2', async (req, res) => {
+  const r = await fetch('https://api.football-data.org/v4/competitions', {
+    headers: { 'X-Auth-Token': process.env.FD_KEY }
+  });
+  const data = await r.json();
+  res.json(data);
+});
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
