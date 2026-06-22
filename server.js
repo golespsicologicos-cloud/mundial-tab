@@ -97,7 +97,9 @@ console.log('Captura tomada, subiendo a Facebook...');
     form.append('caption', '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\n#Mundial2026 #FIFA #Bracket');
     form.append('access_token', PAGE_TOKEN);
 
-    const fbRes = await fetch(`https://graph.facebook.com/v20.0/${PAGE_ID}/photos`, {
+    const pageId = process.env.PAGE_ID;
+console.log('Usando PAGE_ID:', pageId);
+const fbRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/photos`, {
       method: 'POST', body: form, headers: form.getHeaders()
     });
     const fbData = await fbRes.json();
