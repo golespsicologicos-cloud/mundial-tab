@@ -79,7 +79,7 @@ async function captureAndPost() {
     const puppeteer = require('puppeteer');
 console.log('Iniciando Puppeteer...');
   const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/.cache/puppeteer/chrome/linux-121.0.6167.85/chrome-linux64/chrome',
+ executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/project/src/.chrome/chrome/linux-121.0.6167.85/chrome-linux64/chrome',
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
   headless: 'new'
 });
