@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mundial 2026 — Bracket</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0b1220;
+  color: #e8edf5;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(180deg, #0f1e3a 0%, #0b1220 100%);
+  border-bottom: 2px solid #c9a227;
+  padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-brand { display: flex; align-items: center; gap: 14px; }
+.header-trophy { font-size: 32px; filter: drop-shadow(0 0 10px rgba(201,162,39,0.5)); }
+.header-title { font-size: 20px; font-weight: 800; color: #c9a227; letter-spacing: 1px; text-transform: uppercase; }
+.header-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.5px; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(239,68,68,0.5); border-radius: 4px;
+  padding: 6px 14px; font-size: 11px; font-weight: 800;
+  color: #ef4444; letter-spacing: 1.5px; text-transform: uppercase;
+}
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* TABS */
+.tabs { display: flex; background: #0d1829; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.tab {
+  padding: 12px 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: rgba(255,255,255,0.35); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+}
+.tab.active { color: #c9a227; border-bottom-color: #c9a227; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* BRACKET */
+.bracket-section { padding: 16px; overflow-x: auto; }
+.phase-title {
+  text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: #c9a227; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px; justify-content: center;
+}
+.phase-title::before, .phase-title::after {
+  content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(201,162,39,0.3), transparent);
+}
+
+.bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  min-width: 700px;
+  align-items: center;
+}
+
+.round-col { display: flex; flex-direction: column; }
+.round-title {
+  text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.25); padding: 0 8px 12px;
+}
+
+.round-slots { display: flex; flex-direction: column; justify-content: space-around; flex: 1; }
+
+.match-wrap {
+  display: flex; align-items: center; padding: 6px 8px; position: relative;
+}
+
+/* Connector lines */
+.match-wrap.has-connector::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: rgba(201,162,39,0.2);
+}
+
+.match {
+  flex: 1;
+  background: #111d30;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.match.active-round { border-color: rgba(201,162,39,0.25); }
+.match.future-round { opacity: 0.4; }
+
+.match-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.match-row:last-child { border-bottom: none; }
+.match-row.tbd { color: rgba(255,255,255,0.2); }
+.match-row.qualified { color: #e8edf5; font-weight: 600; }
+.match-flag { font-size: 14px; line-height: 1; width: 20px; text-align: center; }
+.match-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.match-pts { font-size: 10px; color: rgba(255,255,255,0.25); }
+
+/* Empty slot */
+.empty-slot {
+  flex: 1; background: #0d1626;
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 6px; overflow: hidden;
+}
+.empty-row {
+  display: flex; align-items: center; padding: 7px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  gap: 6px;
+}
+.empty-row:last-child { border-bottom: none; }
+.empty-line { height: 1px; background: rgba(255,255,255,0.06); flex: 1; border-radius: 1px; }
+
+/* GROUPS */
+.groups-section { padding: 14px; }
+.groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:500px){ .groups-grid { grid-template-columns: 1fr; } }
+.group-card { background: #0d1829; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; overflow: hidden; }
+.group-header {
+  padding: 8px 12px; font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #c9a227;
+  background: rgba(201,162,39,0.06); border-bottom: 1px solid rgba(201,162,39,0.12);
+}
+.group-table { width: 100%; border-collapse: collapse; }
+.group-table th { font-size: 9px; color: rgba(255,255,255,0.25); font-weight: 700; padding: 5px 10px; text-align: right; letter-spacing: 0.5px; }
+.group-table th:first-child { text-align: left; }
+.group-table td { padding: 6px 10px; font-size: 11px; text-align: right; border-top: 1px solid rgba(255,255,255,0.03); }
+.group-table td:first-child { text-align: left; }
+.team-cell { display: flex; align-items: center; gap: 6px; }
+.rank { width: 14px; height: 14px; border-radius: 3px; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.r1 { background: rgba(201,162,39,0.2); color: #c9a227; }
+.r2 { background: rgba(34,197,94,0.12); color: #22c55e; }
+.r3,.r4 { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.25); }
+.pts { font-weight: 800; color: #e8edf5; }
+.qualified-row { background: rgba(34,197,94,0.03); }
+
+/* SCORES */
+.scores-section { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.score-card { background: #0d1829; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
+.score-card.live-game { border-color: rgba(239,68,68,0.3); }
+.score-teams { flex: 1; }
+.score-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.score-flag { font-size: 17px; }
+.score-name { flex: 1; font-size: 13px; }
+.score-name.w { font-weight: 700; }
+.score-num { font-size: 16px; font-weight: 800; min-width: 16px; text-align: right; }
+.score-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 2px 0; }
+.score-meta { text-align: right; }
+.score-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+.pill-final { background: rgba(34,197,94,0.1); color: #22c55e; }
+.pill-live { background: rgba(239,68,68,0.1); color: #ef4444; animation: blink 1.5s infinite; }
+.pill-sched { background: rgba(201,162,39,0.08); color: #c9a227; }
+.score-date { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 3px; }
+
+.loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.3); }
+.spinner { width: 28px; height: 28px; border: 2px solid rgba(255,255,255,0.08); border-top-color: #c9a227; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.update-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: rgba(201,162,39,0.04); border-bottom: 1px solid rgba(201,162,39,0.08); }
+.update-text { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.3px; }
+.refresh-btn { font-size: 10px; color: #c9a227; background: rgba(201,162,39,0.08); border: 1px solid rgba(201,162,39,0.2); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-weight: 700; letter-spacing: 0.5px; }
+
+.footer { text-align: center; padding: 14px; font-size: 10px; color: rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.04); letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-trophy">🏆</div>
+    <div>
+      <div class="header-title">Mundial 2026</div>
+      <div class="header-sub">Bracket · Tiempo Real</div>
+    </div>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div>En vivo</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('bracket',this)">Bracket</div>
+  <div class="tab" onclick="showTab('grupos',this)">Grupos</div>
+  <div class="tab" onclick="showTab('partidos',this)">Partidos</div>
+</div>
+
+<div class="update-bar">
+  <span class="update-text" id="upd-text">Cargando...</span>
+  <button class="refresh-btn" onclick="loadAll()">↻ Actualizar</button>
+</div>
+
+<!-- BRACKET -->
+<div class="section active" id="tab-bracket">
+  <div class="bracket-section">
+    <div class="phase-title" id="phase-label">Proyección · Octavos de Final</div>
+    <div class="bracket-grid" id="bracket-grid">
+      <div class="loading"><div class="spinner"></div>Calculando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- GRUPOS -->
+<div class="section" id="tab-grupos">
+  <div class="groups-section">
+    <div class="groups-grid" id="groups-grid">
+      <div class="loading"><div class="spinner"></div>Cargando grupos...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PARTIDOS -->
+<div class="section" id="tab-partidos">
+  <div class="scores-section" id="scores-list">
+    <div class="loading"><div class="spinner"></div>Cargando partidos...</div>
+  </div>
+</div>
+
+<div class="footer">Mundial 2026 · Datos actualizados automáticamente cada 15 min</div>
+
+<script>
+const FLAGS = {
+  MEX:'🇲🇽',KOR:'🇰🇷',CZE:'🇨🇿',RSA:'🇿🇦',CAN:'🇨🇦',SUI:'🇨🇭',BIH:'🇧🇦',QAT:'🇶🇦',
+  BRA:'🇧🇷',MAR:'🇲🇦',SCO:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',HAI:'🇭🇹',USA:'🇺🇸',AUS:'🇦🇺',PAR:'🇵🇾',TUR:'🇹🇷',
+  GER:'🇩🇪',CIV:'🇨🇮',ECU:'🇪🇨',CUW:'🇨🇼',NED:'🇳🇱',JPN:'🇯🇵',SWE:'🇸🇪',TUN:'🇹🇳',
+  EGY:'🇪🇬',IRN:'🇮🇷',BEL:'🇧🇪',NZL:'🇳🇿',ESP:'🇪🇸',URU:'🇺🇾',CPV:'🇨🇻',KSA:'🇸🇦',
+  NOR:'🇳🇴',FRA:'🇫🇷',SEN:'🇸🇳',IRQ:'🇮🇶',ARG:'🇦🇷',AUT:'🇦🇹',JOR:'🇯🇴',ALG:'🇩🇿',
+  COL:'🇨🇴',COD:'🇨🇩',POR:'🇵🇹',UZB:'🇺🇿',ENG:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',GHA:'🇬🇭',PAN:'🇵🇦',CRO:'🇭🇷',
+};
+
+let standings = [], scores = [], lastUp = null;
+
+async function loadAll() {
+  try {
+    const [s, sc] = await Promise.all([fetch('/api/standings'), fetch('/api/scores')]);
+    const sd = await s.json(); const scd = await sc.json();
+    if (sd.success) standings = sd.data;
+    if (scd.success) scores = scd.data;
+    lastUp = new Date();
+    render();
+  } catch(e) { console.error(e); }
+}
+
+function ts() {
+  if (!lastUp) return '';
+  return 'Actualizado ' + lastUp.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
+}
+
+function render() {
+  renderBracket();
+  renderGroups();
+  renderScores();
+  document.getElementById('upd-text').textContent = ts();
+}
+
+function getGroups() {
+  const g = {};
+  for (const t of standings) {
+    if (!g[t.group]) g[t.group] = [];
+    g[t.group].push(t);
+  }
+  for (const k in g) g[k].sort((a,b) => b.pts-a.pts || (b.gf-b.gc)-(a.gf-a.gc));
+  return g;
+}
+
+function teamRow(team, cls='qualified') {
+  const flag = FLAGS[team.abbr] || '🏳';
+  return `<div class="match-row ${cls}">
+    <span class="match-flag">${flag}</span>
+    <span class="match-name">${team.name}</span>
+  </div>`;
+}
+
+function emptyMatch() {
+  return `<div class="empty-slot">
+    <div class="empty-row"><div class="empty-line"></div></div>
+    <div class="empty-row"><div class="empty-line"></div></div>
+  </div>`;
+}
+
+function renderBracket() {
+  const g = getGroups();
+  const grid = document.getElementById('bracket-grid');
+
+  // Octavos — única ronda con equipos reales
+  const octavos = [
+    [g.A?.[0], g.B?.[1]],
+    [g.C?.[0], g.D?.[1]],
+    [g.E?.[0], g.F?.[1]],
+    [g.G?.[0], g.H?.[1]],
+    [g.I?.[0], g.J?.[1]],
+    [g.K?.[0], g.L?.[1]],
+    [g.B?.[0], g.A?.[1]],
+    [g.D?.[0], g.C?.[1]],
+  ];
+
+  const rounds = [
+    { label: 'Octavos de Final', slots: octavos, active: true },
+    { label: 'Cuartos de Final', slots: [[null,null],[null,null],[null,null],[null,null]], active: false },
+    { label: 'Semifinales',      slots: [[null,null],[null,null]], active: false },
+    { label: 'Final',            slots: [[null,null]], active: false },
+  ];
+
+  grid.innerHTML = '';
+  grid.style.gridTemplateColumns = `repeat(${rounds.length}, 1fr)`;
+
+  rounds.forEach(r => {
+    const col = document.createElement('div');
+    col.className = 'round-col';
+    col.style.cssText = 'display:flex;flex-direction:column;';
+
+    const title = document.createElement('div');
+    title.className = 'round-title';
+    title.textContent = r.label;
+    col.appendChild(title);
+
+    const slots = document.createElement('div');
+    slots.style.cssText = 'display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:8px;';
+
+    r.slots.forEach(([t1, t2]) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:4px 8px;';
+
+      if (!r.active) {
+        wrap.innerHTML = emptyMatch();
+      } else {
+        const box = document.createElement('div');
+        box.className = 'match active-round';
+        box.innerHTML = teamRow(t1 || {name:'Por definir', abbr:'???'}, t1 ? 'qualified' : 'tbd') +
+                        teamRow(t2 || {name:'Por definir', abbr:'???'}, t2 ? 'qualified' : 'tbd');
+        wrap.appendChild(box);
+      }
+      slots.appendChild(wrap);
+    });
+
+    col.appendChild(slots);
+    grid.appendChild(col);
+  });
+}
+
+function renderGroups() {
+  const g = getGroups();
+  const container = document.getElementById('groups-grid');
+  container.innerHTML = '';
+  for (const k of ['A','B','C','D','E','F','G','H','I','J','K','L']) {
+    if (!g[k]) continue;
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `<div class="group-header">Grupo ${k}</div>
+      <table class="group-table">
+        <thead><tr><th>Equipo</th><th>PJ</th><th>Pts</th><th>GD</th></tr></thead>
+        <tbody>${g[k].map((t,i)=>`
+          <tr class="${i<2?'qualified-row':''}">
+            <td><div class="team-cell">
+              <div class="rank r${i+1}">${i+1}</div>
+              <span>${FLAGS[t.abbr]||'🏳'}</span>
+              <span>${t.name}</span>
+            </div></td>
+            <td>${t.w+t.d+t.l}</td>
+            <td class="pts">${t.pts}</td>
+            <td style="color:${(t.gf-t.gc)>0?'#22c55e':(t.gf-t.gc)<0?'#ef4444':'rgba(255,255,255,0.3)'}">${t.gf-t.gc>0?'+':''}${t.gf-t.gc}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    container.appendChild(card);
+  }
+}
+
+function renderScores() {
+  const container = document.getElementById('scores-list');
+  container.innerHTML = '';
+  const all = [...scores.filter(s=>s.status==='live'),...scores.filter(s=>s.status==='final'),...scores.filter(s=>s.status==='scheduled')];
+  if (!all.length) { container.innerHTML = '<div class="loading">Sin partidos</div>'; return; }
+  for (const m of all) {
+    const wH = m.status==='final' && m.sH>m.sA;
+    const wA = m.status==='final' && m.sA>m.sH;
+    const isL = m.status==='live', isS = m.status==='scheduled';
+    const pill = m.status==='final'?'pill-final':isL?'pill-live':'pill-sched';
+    const label = m.status==='final'?'FINAL':isL?'EN VIVO':'PRÓXIMO';
+    const card = document.createElement('div');
+    card.className = 'score-card'+(isL?' live-game':'');
+    card.innerHTML = `<div class="score-teams">
+      <div class="score-row">
+        <span class="score-flag">${FLAGS[m.homeAbbr]||'🏳'}</span>
+        <span class="score-name${wH?' w':''}">${m.home}</span>
+        <span class="score-num">${isS?'':m.sH}</span>
+      </div>
+      <div class="score-sep"></div>
+      <div class="score-row">
+        <span class="score-flag">${FLAGS[m.awayAbbr]||'🏳'}</span>
+        <span class="score-name${wA?' w':''}">${m.away}</span>
+        <span class="score-num">${isS?'':m.sA}</span>
+      </div>
+    </div>
+    <div class="score-meta">
+      <span class="score-pill ${pill}">${label}</span>
+      <div class="score-date">${m.date}</div>
+    </div>`;
+    container.appendChild(card);
+  }
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+loadAll();
+setInterval(loadAll, 90000);
+</script>
+</body>
+</html>
