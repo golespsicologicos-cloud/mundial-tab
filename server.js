@@ -125,7 +125,10 @@ app.get('/api/scores', async (req, res) => {
   if (!cache.scores) return res.status(503).json({ success: false });
   res.json({ success: true, data: cache.scores, updated: new Date(cache.lastFetch).toISOString() });
 });
-
+app.get('/api/debug', async (req, res) => {
+  const data = await fetchFromAPI('leagues?name=World+Cup&season=2026');
+  res.json(data);
+});
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
