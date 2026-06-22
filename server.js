@@ -77,6 +77,7 @@ async function refreshData() {
 async function captureAndPost() {
   try {
     const puppeteer = require('puppeteer');
+console.log('Iniciando Puppeteer...');
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       headless: 'new'
@@ -87,7 +88,7 @@ async function captureAndPost() {
     await page.waitForTimeout(2000);
     const screenshot = await page.screenshot({ type: 'png', fullPage: false });
     await browser.close();
-
+console.log('Captura tomada, subiendo a Facebook...');
     const FormData = require('form-data');
     const form = new FormData();
     form.append('source', screenshot, { filename: 'bracket.png', contentType: 'image/png' });
