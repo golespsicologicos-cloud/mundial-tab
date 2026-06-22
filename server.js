@@ -99,8 +99,13 @@ console.log('Captura tomada, subiendo a Facebook...');
 
     const pageId = process.env.PAGE_ID;
 console.log('Usando PAGE_ID:', pageId);
-const fbRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/photos`, {
-      method: 'POST', body: form, headers: form.getHeaders()
+const fbRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\nVe el bracket en vivo aquí:\nhttps://mundial-tab.onrender.com\n\n#Mundial2026 #FIFA #Bracket',
+    access_token: PAGE_TOKEN
+  })
     });
     const fbData = await fbRes.json();
     if (fbData.id) {
