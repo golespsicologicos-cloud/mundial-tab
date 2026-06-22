@@ -17,21 +17,21 @@ function cacheExpired() {
 const API_KEY = process.env.API_KEY;
 const PAGE_TOKEN = process.env.PAGE_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;
-const WORLD_CUP_ID = 1;
-const SEASON = 2026;
+const FD_KEY = process.env.FD_KEY;
+const WC_ID = 2000;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
 async function fetchFromAPI(endpoint) {
-  const res = await fetch(`https://v3.football.api-sports.io/${endpoint}`, {
-    headers: { 'x-apisports-key': API_KEY }
+  const res = await fetch(`https://api.football-data.org/v4/${endpoint}`, {
+    headers: { 'X-Auth-Token': FD_KEY }
   });
   return res.json();
 }
 
 async function refreshData() {
   try {
-    const standingsData = await fetchFromAPI(`standings?league=${WORLD_CUP_ID}&season=${SEASON}`);
-    const rawGroups = standingsData?.response?.[0]?.league?.standings || [];
+   const standingsData = await fetchFromAPI(`competitions/${WC_ID}/standings`);
+const rawGroups = standingsData?.standings || [];
     const standings = [];
     for (const group of rawGroups) {
       for (const team of group) {
@@ -46,19 +46,18 @@ async function refreshData() {
         });
       }
     }
-    const scoresData = await fetchFromAPI(`fixtures?league=${WORLD_CUP_ID}&season=${SEASON}&last=15`);
-    const scores = (scoresData?.response || []).map(f => ({
-      id: f.fixture.id,
-      home: f.teams.home.name,
-      away: f.teams.away.name,
-      homeAbbr: f.teams.home.name.substring(0, 3).toUpperCase(),
-      awayAbbr: f.teams.away.name.substring(0, 3).toUpperCase(),
-      sH: f.goals.home ?? 0,
-      sA: f.goals.away ?? 0,
-      status: f.fixture.status.short === 'FT' ? 'final'
-            : f.fixture.status.short === 'NS' ? 'scheduled' : 'live',
-      date: new Date(f.fixture.date).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })
-    }));
+   const scoresData = await fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED&limit=15`);
+const scores = (scoresData?.matches || []).map(f => ({
+  id: f.id,
+  home: f.homeTeam.name,
+  away: f.awayTeam.name,
+  homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
+  awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
+  sH: f.score.fullTime.home ?? 0,
+  sA: f.score.fullTime.away ?? 0,
+  status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
+  date: new Date(f.utcDate).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })
+}));
     cache.standings = standings;
     cache.scores = scores;
     cache.lastFetch = Date.now();
