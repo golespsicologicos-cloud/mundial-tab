@@ -212,7 +212,21 @@ app.get('/api/scores', async (req, res) => {
   if (!cache.scores) return res.status(503).json({ success: false });
   res.json({ success: true, data: cache.scores, updated: new Date(cache.lastFetch).toISOString() });
 });
-
+app.get('/api/test-webhook', async (req, res) => {
+  await fetch(process.env.MAKE_WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      home: 'México',
+      away: 'Argentina',
+      scoreHome: 2,
+      scoreAway: 1,
+      bracket_url: process.env.APP_URL,
+      message: '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\n#Mundial2026 #FIFA #Bracket'
+    })
+  });
+  res.json({ success: true, message: 'Webhook de prueba enviado' });
+});
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
