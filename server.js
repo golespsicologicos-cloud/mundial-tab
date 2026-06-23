@@ -141,7 +141,7 @@ async function captureAndPost() {
       headless: 'new'
     });
     const page = await browser.newPage();
-    await page.setViewport({ width: 900, height: 700 });
+    await page.setViewport({ width: 1200, height: 900, deviceScaleFactor: 2 });
     await page.goto(`${APP_URL}`, { waitUntil: 'networkidle0', timeout: 30000 });
     await page.waitForTimeout(2000);
     const screenshot = await page.screenshot({ type: 'png', fullPage: false });
@@ -239,7 +239,7 @@ app.get('/api/screenshot', async (req, res) => {
     await page.setViewport({ width: 900, height: 700 });
     await page.goto(APP_URL, { waitUntil: 'networkidle0', timeout: 30000 });
     await page.waitForTimeout(2000);
-    const screenshot = await page.screenshot({ type: 'png' });
+    const screenshot = await page.screenshot({ type: 'png', fullPage: true });
     await browser.close();
     res.set('Content-Type', 'image/png');
     res.send(screenshot);
