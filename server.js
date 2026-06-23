@@ -20,6 +20,62 @@ const PAGE_ID = process.env.PAGE_ID;
 const WC_ID = 2000;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
+// Traducción de nombres al español
+const NOMBRES_ES = {
+  'Mexico': 'México',
+  'South Korea': 'Corea del Sur',
+  'Czechia': 'República Checa',
+  'South Africa': 'Sudáfrica',
+  'Canada': 'Canadá',
+  'Switzerland': 'Suiza',
+  'Bosnia-Herzegovina': 'Bosnia',
+  'Qatar': 'Catar',
+  'Brazil': 'Brasil',
+  'Morocco': 'Marruecos',
+  'Scotland': 'Escocia',
+  'Haiti': 'Haití',
+  'United States': 'Estados Unidos',
+  'Australia': 'Australia',
+  'Paraguay': 'Paraguay',
+  'Turkey': 'Türkiye',
+  'Germany': 'Alemania',
+  'Ivory Coast': 'Costa de Marfil',
+  'Ecuador': 'Ecuador',
+  'Curaçao': 'Curazao',
+  'Netherlands': 'Países Bajos',
+  'Japan': 'Japón',
+  'Sweden': 'Suecia',
+  'Tunisia': 'Túnez',
+  'Egypt': 'Egipto',
+  'Iran': 'Irán',
+  'Belgium': 'Bélgica',
+  'New Zealand': 'Nueva Zelanda',
+  'Spain': 'España',
+  'Uruguay': 'Uruguay',
+  'Cape Verde Islands': 'Cabo Verde',
+  'Saudi Arabia': 'Arabia Saudita',
+  'Norway': 'Noruega',
+  'France': 'Francia',
+  'Senegal': 'Senegal',
+  'Iraq': 'Irak',
+  'Argentina': 'Argentina',
+  'Austria': 'Austria',
+  'Jordan': 'Jordania',
+  'Algeria': 'Argelia',
+  'Colombia': 'Colombia',
+  'Congo DR': 'Congo DR',
+  'Portugal': 'Portugal',
+  'Uzbekistan': 'Uzbekistán',
+  'England': 'Inglaterra',
+  'Ghana': 'Ghana',
+  'Panama': 'Panamá',
+  'Croatia': 'Croacia',
+};
+
+function traducir(nombre) {
+  return NOMBRES_ES[nombre] || nombre;
+}
+
 async function fetchFromAPI(endpoint) {
   const res = await fetch(`https://api.football-data.org/v4/${endpoint}`, {
     headers: { 'X-Auth-Token': FD_KEY }
@@ -38,14 +94,15 @@ async function refreshData() {
         standings.push({
           group: groupLetter,
           rank: entry.position,
-          name: entry.team.name,
+          name: traducir(entry.team.name),
           abbr: entry.team.tla,
           pts: entry.points,
           w: entry.won,
           d: entry.draw,
           l: entry.lost,
           gf: entry.goalsFor,
-          gc: entry.goalsAgainst
+          gc: entry.goalsAgainst,
+          played: entry.playedGames
         });
       }
     }
@@ -53,8 +110,8 @@ async function refreshData() {
     const scoresData = await fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED`);
     const scores = (scoresData?.matches || []).slice(-15).map(f => ({
       id: f.id,
-      home: f.homeTeam.name,
-      away: f.awayTeam.name,
+      home: traducir(f.homeTeam.name),
+      away: traducir(f.awayTeam.name),
       homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
       awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
       sH: f.score.fullTime.home ?? 0,
@@ -73,39 +130,35 @@ async function refreshData() {
     return null;
   }
 }
-console.log('PAGE_ID:', PAGE_ID);
-console.log('TOKEN:', PAGE_TOKEN ? 'existe' : 'NO EXISTE');
+
 async function captureAndPost() {
   try {
     const puppeteer = require('puppeteer');
-console.log('Iniciando Puppeteer...');
-  const browser = await puppeteer.launch({
- executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/project/src/.chrome/chrome/linux-121.0.6167.85/chrome-linux64/chrome',
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  headless: 'new'
-});
+    console.log('Iniciando Puppeteer...');
+    const browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: 'new'
+    });
     const page = await browser.newPage();
     await page.setViewport({ width: 900, height: 700 });
     await page.goto(`${APP_URL}`, { waitUntil: 'networkidle0', timeout: 30000 });
     await page.waitForTimeout(2000);
     const screenshot = await page.screenshot({ type: 'png', fullPage: false });
     await browser.close();
-console.log('Captura tomada, subiendo a Facebook...');
-    const FormData = require('form-data');
-    const form = new FormData();
-    form.append('source', screenshot, { filename: 'bracket.png', contentType: 'image/png' });
-    form.append('caption', '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\n#Mundial2026 #FIFA #Bracket');
-    form.append('access_token', PAGE_TOKEN);
+    console.log('Captura tomada, subiendo a Facebook...');
 
     const pageId = process.env.PAGE_ID;
-console.log('Usando PAGE_ID:', pageId);
-const fbRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\nVe el bracket en vivo aquí:\nhttps://mundial-tab.onrender.com\n\n#Mundial2026 #FIFA #Bracket',
-    access_token: PAGE_TOKEN
-  })
+    console.log('PAGE_ID:', pageId);
+    console.log('TOKEN:', PAGE_TOKEN ? 'existe' : 'NO EXISTE');
+
+    const fbRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: '⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\nVe el bracket en vivo:\nhttps://mundial-tab.onrender.com\n\n#Mundial2026 #FIFA #Bracket',
+        access_token: PAGE_TOKEN
+      })
     });
     const fbData = await fbRes.json();
     if (fbData.id) {
