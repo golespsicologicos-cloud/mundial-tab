@@ -227,6 +227,26 @@ app.get('/api/test-webhook', async (req, res) => {
   });
   res.json({ success: true, message: 'Webhook de prueba enviado' });
 });
+app.get('/api/screenshot', async (req, res) => {
+  try {
+    const puppeteer = require('puppeteer');
+    const browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: 'new'
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 900, height: 700 });
+    await page.goto(APP_URL, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const screenshot = await page.screenshot({ type: 'png' });
+    await browser.close();
+    res.set('Content-Type', 'image/png');
+    res.send(screenshot);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/api/post-now', async (req, res) => {
   await captureAndPost();
   res.json({ success: true, message: 'Publicacion enviada' });
