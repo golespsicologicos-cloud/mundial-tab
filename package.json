@@ -1,6 +1,6 @@
 {
   "name": "mundial-2026-tab",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
   "dependencies": {
