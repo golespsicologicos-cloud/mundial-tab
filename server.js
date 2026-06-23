@@ -178,7 +178,24 @@ async function checkForFinishedMatch() {
   if (recentFinal) {
     console.log(`Partido terminado: ${recentFinal.home} ${recentFinal.sH}-${recentFinal.sA} ${recentFinal.away}`);
     lastPostedMatchId = recentFinal.id;
-    await captureAndPost();
+    // Llamar a Make webhook
+    try {
+      await fetch(process.env.MAKE_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          home: recentFinal.home,
+          away: recentFinal.away,
+          scoreHome: recentFinal.sH,
+          scoreAway: recentFinal.sA,
+          bracket_url: process.env.APP_URL,
+          message: `⚽ Así va el Mundial 2026 — bracket actualizado tras el último partido 🏆\n\n#Mundial2026 #FIFA #Bracket`
+        })
+      });
+      console.log('Webhook enviado a Make');
+    } catch(e) {
+      console.error('Error webhook:', e.message);
+    }
   }
 }
 
