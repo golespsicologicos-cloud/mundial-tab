@@ -107,7 +107,26 @@ async function refreshData() {
       }
     }
 
-    const scoresData = await fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED`);
+    const [finishedData, scheduledData] = await Promise.all([
+  fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED`),
+  fetchFromAPI(`competitions/${WC_ID}/matches?status=SCHEDULED`)
+]);
+
+const finished = (finishedData?.matches || []).slice(-10);
+const scheduled = (scheduledData?.matches || []).slice(0, 10);
+const allMatches = [...finished, ...scheduled];
+
+const scores = allMatches.map(f => ({
+  id: f.id,
+  home: traducir(f.homeTeam.name),
+  away: traducir(f.awayTeam.name),
+  homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
+  awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
+  sH: f.score?.fullTime?.home ?? 0,
+  sA: f.score?.fullTime?.away ?? 0,
+  status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
+  date: new Date(f.utcDate).toLocaleDateString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}));
     const scores = (scoresData?.matches || []).slice(-15).map(f => ({
       id: f.id,
       home: traducir(f.homeTeam.name),
