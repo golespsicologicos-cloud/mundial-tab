@@ -86,9 +86,10 @@ async function refreshData() {
       sH: f.score?.fullTime?.home ?? 0,
       sA: f.score?.fullTime?.away ?? 0,
       status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
-      date: new Date(f.utcDate).toLocaleDateString('es-MX', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      })
+     date: new Date(f.utcDate).toLocaleString('es-MX', {
+  timeZone: 'America/Mexico_City',
+  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+})
     }));
 
     cache.standings = standings;
