@@ -207,8 +207,10 @@ async function refreshData() {
     }
 
     const matchesData = await fetchFromAPI(
-  `competitions/${WC_ID}/matches?dateFrom=2026-06-24&dateTo=2026-06-28`
+  `competitions/${WC_ID}/matches?const matchesData = await fetchFromAPI(
+  `competitions/${WC_ID}/matches?dateFrom=2026-06-11&dateTo=2026-07-01`
 );
+const allMatches = matchesData?.matches || [];
 const allMatches = matchesData?.matches || [];
 
     const scores = allMatches.map(f => ({
