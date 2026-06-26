@@ -42,25 +42,21 @@ async function fetchFromAPI(endpoint) {
   return res.json();
 }
 
-// Comparar dos terceros para ranking (retorna positivo si b es mejor que a)
 function compareThirds(a, b) {
   if (b.pts !== a.pts) return b.pts - a.pts;
   const gdA = a.gf - a.gc, gdB = b.gf - b.gc;
   if (gdB !== gdA) return gdB - gdA;
   if (b.gf !== a.gf) return b.gf - a.gf;
-  return 0; // fair play y ranking FIFA no disponibles en API
+  return 0;
 }
 
-// Calcular escenarios para equipos con partidos pendientes
 function calcularEscenarios(standings, scheduledMatches) {
-  // Agrupar standings por grupo
   const grupos = {};
   for (const t of standings) {
     if (!grupos[t.group]) grupos[t.group] = [];
     grupos[t.group].push(t);
   }
 
-  // Identificar terceros actuales
   const terceros = [];
   for (const grp in grupos) {
     const sorted = [...grupos[grp]].sort(compareThirds);
@@ -68,10 +64,8 @@ function calcularEscenarios(standings, scheduledMatches) {
   }
   terceros.sort(compareThirds);
 
-  // Grupos con partidos pendientes
   const gruposPendientes = new Set();
   for (const m of scheduledMatches) {
-    // Buscar a qué grupo pertenecen los equipos
     for (const grp in grupos) {
       const equipos = grupos[grp].map(t => t.abbr);
       if (equipos.includes(m.homeAbbr) || equipos.includes(m.awayAbbr)) {
@@ -80,48 +74,67 @@ function calcularEscenarios(standings, scheduledMatches) {
     }
   }
 
+  // Peor escenario: todos los pendientes ganan
+  const tercerosPeorEscenario = terceros.map(t => {
+    if (gruposPendientes.has(t.grp)) {
+      return { ...t, pts: t.pts + 3, gf: t.gf + 1 };
+    }
+    return { ...t };
+  });
+  tercerosPeorEscenario.sort(compareThirds);
+
   const escenarios = [];
 
   for (const t of terceros) {
-    // Solo calcular para equipos con partido pendiente
+    const posActual = terceros.findIndex(x => x.abbr === t.abbr);
+
     if (!gruposPendientes.has(t.grp)) {
-      // Grupo terminado - situación definitiva
-      const pos = terceros.findIndex(x => x.abbr === t.abbr);
-      escenarios.push({
-        team: t.name,
-        abbr: t.abbr,
-        group: t.grp,
-        pts: t.pts,
-        gd: t.gf - t.gc,
-        gf: t.gf,
-        status: pos < 8 ? 'clasificado' : 'eliminado',
-        posicion: pos + 1,
-        mensaje: pos < 8
-          ? `✅ Clasificado en posición ${pos + 1} del ranking de terceros`
-          : `❌ Eliminado — posición ${pos + 1} del ranking`,
-        detalle: null
-      });
+      const posPeor = tercerosPeorEscenario.findIndex(x => x.abbr === t.abbr);
+
+      if (posActual < 8 && posPeor < 8) {
+        escenarios.push({
+          team: t.name, abbr: t.abbr, group: t.grp,
+          pts: t.pts, gd: t.gf - t.gc, gf: t.gf,
+          status: 'clasificado', posicion: posActual + 1,
+          mensaje: `✅ Clasificado matemáticamente — posición ${posActual + 1} incluso si todos los pendientes ganan`,
+          detalle: null
+        });
+      } else if (posActual < 8 && posPeor >= 8) {
+        const amenazas = tercerosPeorEscenario.slice(0, 8)
+          .filter(x => gruposPendientes.has(x.grp) && compareThirds(x, t) < 0)
+          .map(x => x.name);
+        escenarios.push({
+          team: t.name, abbr: t.abbr, group: t.grp,
+          pts: t.pts, gd: t.gf - t.gc, gf: t.gf,
+          status: 'en_riesgo', posicion: posActual + 1,
+          mensaje: `⚠️ Clasificado ahora (pos.${posActual + 1}) pero en riesgo — puede ser desplazado`,
+          detalle: amenazas.length
+            ? [`🔴 Equipos que podrían superarlo si ganan: ${amenazas.join(', ')}`]
+            : [`🟡 Dependiendo de goles y diferencia en partidos pendientes`]
+        });
+      } else {
+        escenarios.push({
+          team: t.name, abbr: t.abbr, group: t.grp,
+          pts: t.pts, gd: t.gf - t.gc, gf: t.gf,
+          status: 'eliminado', posicion: posActual + 1,
+          mensaje: `❌ Eliminado — posición ${posActual + 1} del ranking de terceros`,
+          detalle: null
+        });
+      }
       continue;
     }
 
-    // Equipo con partido pendiente - calcular escenarios
-    const posActual = terceros.findIndex(x => x.abbr === t.abbr);
-    
-    // Escenario si GANA (suma 3pts, asumimos +1 gol GD mínimo)
     const siGana = { ...t, pts: t.pts + 3, gf: t.gf + 1 };
     const rankingGana = [...terceros.filter(x => x.abbr !== t.abbr), siGana].sort(compareThirds);
     const posGana = rankingGana.findIndex(x => x.abbr === t.abbr);
 
-    // Escenario si EMPATA (suma 1pt)
     const siEmpata = { ...t, pts: t.pts + 1 };
     const rankingEmpata = [...terceros.filter(x => x.abbr !== t.abbr), siEmpata].sort(compareThirds);
     const posEmpata = rankingEmpata.findIndex(x => x.abbr === t.abbr);
 
-    // Escenario si PIERDE (0pts)
     const rankingPierde = [...terceros].sort(compareThirds);
     const posPierde = rankingPierde.findIndex(x => x.abbr === t.abbr);
 
-    // Determinar status general
     let status = 'depende';
     let mensaje = '';
     let detalle = [];
@@ -134,48 +147,33 @@ function calcularEscenarios(standings, scheduledMatches) {
       mensaje = `❌ Eliminado matemáticamente — ningún resultado lo lleva al top 8`;
     } else {
       status = 'depende';
-      
       if (posGana < 8) {
         detalle.push(`🟢 Si gana: clasifica (posición ${posGana + 1})`);
       } else {
-        detalle.push(`🔴 Si gana: aún fuera (posición ${posGana + 1}) — necesita que otros terceros pierdan puntos`);
+        detalle.push(`🔴 Si gana: aún fuera (pos.${posGana + 1}) — necesita que otros terceros pierdan puntos`);
       }
-
       if (posEmpata < 8) {
         detalle.push(`🟡 Si empata: clasifica (posición ${posEmpata + 1})`);
       } else {
-        detalle.push(`🔴 Si empata: fuera (posición ${posEmpata + 1}) — necesita ayuda de otros resultados`);
+        detalle.push(`🔴 Si empata: fuera (pos.${posEmpata + 1}) — necesita ayuda de otros resultados`);
       }
-
       if (posPierde < 8) {
-        detalle.push(`🟡 Si pierde: podría clasificar (posición ${posPierde + 1}) dependiendo de goles`);
+        detalle.push(`🟡 Si pierde: podría clasificar (pos.${posPierde + 1}) — depende de otros resultados y goles`);
       } else {
         detalle.push(`🔴 Si pierde: eliminado (posición ${posPierde + 1})`);
       }
-
-      // Calcular qué necesita específicamente
-      const octavoActual = terceros[7]; // el 8vo mejor actual
-      if (octavoActual && t.abbr !== octavoActual.abbr) {
-        const diff = compareThirds(t, octavoActual);
-        if (diff > 0) {
-          detalle.push(`📊 Actualmente necesita superar a ${octavoActual.name} (${octavoActual.pts}pts, GD:${octavoActual.gf-octavoActual.gc>0?'+':''}${octavoActual.gf-octavoActual.gc})`);
-        }
+      const octavoActual = terceros[7];
+      if (octavoActual && t.abbr !== octavoActual.abbr && posActual >= 8) {
+        const gdOct = octavoActual.gf - octavoActual.gc;
+        detalle.push(`📊 Necesita superar a ${octavoActual.name} — ${octavoActual.pts}pts · GD:${gdOct > 0 ? '+' : ''}${gdOct}`);
       }
-
       mensaje = `🟡 Su clasificación depende del resultado de su partido`;
     }
 
     escenarios.push({
-      team: t.name,
-      abbr: t.abbr,
-      group: t.grp,
-      pts: t.pts,
-      gd: t.gf - t.gc,
-      gf: t.gf,
-      status,
-      posicion: posActual + 1,
-      mensaje,
-      detalle
+      team: t.name, abbr: t.abbr, group: t.grp,
+      pts: t.pts, gd: t.gf - t.gc, gf: t.gf,
+      status, posicion: posActual + 1, mensaje, detalle
     });
   }
 
@@ -207,11 +205,9 @@ async function refreshData() {
     }
 
     const matchesData = await fetchFromAPI(
-  `competitions/${WC_ID}/matches?const matchesData = await fetchFromAPI(
-  `competitions/${WC_ID}/matches?dateFrom=2026-06-11&dateTo=2026-07-01`
-);
-const allMatches = matchesData?.matches || [];
-const allMatches = matchesData?.matches || [];
+      `competitions/${WC_ID}/matches?dateFrom=2026-06-11&dateTo=2026-07-01`
+    );
+    const allMatches = matchesData?.matches || [];
 
     const scores = allMatches.map(f => ({
       id: f.id,
@@ -228,7 +224,6 @@ const allMatches = matchesData?.matches || [];
       })
     }));
 
-    // Calcular escenarios con partidos pendientes
     const scheduledForScenarios = scores.filter(s => s.status === 'scheduled').map(s => ({
       homeAbbr: s.homeAbbr,
       awayAbbr: s.awayAbbr
