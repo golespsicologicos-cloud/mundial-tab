@@ -206,14 +206,10 @@ async function refreshData() {
       }
     }
 
-    const [finishedData, scheduledData] = await Promise.all([
-      fetchFromAPI(`competitions/${WC_ID}/matches?status=FINISHED`),
-      fetchFromAPI(`competitions/${WC_ID}/matches?status=SCHEDULED`)
-    ]);
-
-    const finished = (finishedData?.matches || []).slice(-10);
-    const scheduled = (scheduledData?.matches || []).slice(0, 15);
-    const allMatches = [...finished, ...scheduled];
+    const matchesData = await fetchFromAPI(
+  `competitions/${WC_ID}/matches?dateFrom=2026-06-24&dateTo=2026-06-28`
+);
+const allMatches = matchesData?.matches || [];
 
     const scores = allMatches.map(f => ({
       id: f.id,
