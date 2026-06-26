@@ -209,20 +209,22 @@ async function refreshData() {
     );
     const allMatches = matchesData?.matches || [];
 
-    const scores = allMatches.map(f => ({
-      id: f.id,
-      home: traducir(f.homeTeam.name),
-      away: traducir(f.awayTeam.name),
-      homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
-      awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
-      sH: f.score?.fullTime?.home ?? 0,
-      sA: f.score?.fullTime?.away ?? 0,
-      status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
-      date: new Date(f.utcDate).toLocaleString('es-MX', {
-        timeZone: 'America/Mexico_City',
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      })
-    }));
+    const scores = allMatches
+  .filter(f => f.homeTeam?.name && f.awayTeam?.name)
+  .map(f => ({
+    id: f.id,
+    home: traducir(f.homeTeam.name),
+    away: traducir(f.awayTeam.name),
+    homeAbbr: f.homeTeam.tla || f.homeTeam.name.substring(0,3).toUpperCase(),
+    awayAbbr: f.awayTeam.tla || f.awayTeam.name.substring(0,3).toUpperCase(),
+    sH: f.score?.fullTime?.home ?? 0,
+    sA: f.score?.fullTime?.away ?? 0,
+    status: f.status === 'FINISHED' ? 'final' : f.status === 'IN_PLAY' ? 'live' : 'scheduled',
+    date: new Date(f.utcDate).toLocaleString('es-MX', {
+      timeZone: 'America/Mexico_City',
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
+  }));
 
     const scheduledForScenarios = scores.filter(s => s.status === 'scheduled').map(s => ({
       homeAbbr: s.homeAbbr,
