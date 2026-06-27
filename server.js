@@ -244,7 +244,11 @@ async function refreshData() {
 }
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
-
+app.get('/api/refresh', async (req, res) => {
+  cache.lastFetch = null;
+  await refreshData();
+  res.json({ success: true, message: 'Cache actualizado' });
+});
 app.get('/api/standings', async (req, res) => {
   if (cacheExpired()) await refreshData();
   if (!cache.standings) return res.status(503).json({ success: false });
