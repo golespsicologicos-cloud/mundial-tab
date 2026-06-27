@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 
 let cache = { standings: null, scores: null, scenarios: null, lastFetch: null };
-const CACHE_MINUTES = 15;
+const CACHE_MINUTES = 1;
 
 function cacheExpired() {
   if (!cache.lastFetch) return true;
